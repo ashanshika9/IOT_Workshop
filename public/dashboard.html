@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - SISTec IoT 2026</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Navbar -->
+    <nav class="bg-blue-800 text-white p-4 shadow-lg flex justify-between items-center">
+        <h1 class="text-xl font-bold">SISTec IoT Application 2026</h1>
+        <div>
+            <span id="username-display" class="mr-4 italic">Loading...</span>
+            <a href="/logout" class="bg-red-500 px-3 py-1 rounded hover:bg-red-600 transition">Logout</a>
+        </div>
+    </nav>
+
+    <div class="container mx-auto p-6">
+        <!-- Section 1: Sensor Values -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-xl shadow-md border-l-8 border-orange-500">
+                <h3 class="text-gray-500 uppercase text-sm font-bold">Latest Temperature</h3>
+                <div id="temp-val" class="text-5xl font-extrabold text-gray-800 py-2">-- °C</div>
+                <div id="temp-time" class="text-xs text-gray-400">Waiting for data...</div>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-md border-l-8 border-blue-500">
+                <h3 class="text-gray-500 uppercase text-sm font-bold">Latest Humidity</h3>
+                <div id="hum-val" class="text-5xl font-extrabold text-gray-800 py-2">-- %</div>
+                <div id="hum-time" class="text-xs text-gray-400">Waiting for data...</div>
+            </div>
+        </div>
+
+        <!-- Section 2: LCD Control -->
+        <div class="bg-white p-6 rounded-xl shadow-md mb-8">
+            <h3 class="text-lg font-bold mb-4 border-b pb-2">Update Hardware LCD Display</h3>
+            <form action="/update-lcd" method="POST" class="flex flex-col md:flex-row gap-4">
+                <input type="text" name="lcdText" maxlength="16" placeholder="Enter message (Max 16 chars)" class="flex-grow px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-400 outline-none" required>
+                <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition font-bold">Update LCD</button>
+            </form>
+        </div>
+
+        <!-- Section 3: Records Table -->
+        <div class="bg-white rounded-xl shadow-md overflow-hidden">
+            <h3 class="text-lg font-bold p-4 bg-gray-100 border-b">Sensor History Log</h3>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead class="bg-gray-200">
+                        <tr>
+                            <th class="p-3 border">#</th>
+                            <th class="p-3 border">Temperature</th>
+                            <th class="p-3 border">Humidity</th>
+                            <th class="p-3 border">Time</th>
+                            <th class="p-3 border">Date</th>
+                            <th class="p-3 border text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="records-table-body">
+                        <!-- Rows will be added here via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Fetch User Info
+        fetch('/api/user')
+            .then(res => res.json())
+            .then(data => {
+                if(data.name) document.getElementById('username-display').innerText = "Hello, " + data.name;
+                else window.location.href = '/index.html';
+            });
+
+        // Fetch Records
+        function loadRecords() {
+            fetch('/api/records')
+                .then(res => res.json())
+                .then(data => {
+                    const tableBody = document.getElementById('records-table-body');
+                    tableBody.innerHTML = '';
+                    
+                    if(data.length > 0) {
+                        // Update latest cards
+                        document.getElementById('temp-val').innerText = data[0].temperature + " °C";
+                        document.getElementById('hum-val').innerText = data[0].humidity + " %";
+                        document.getElementById('temp-time').innerText = "Updated at: " + data[0].time + " | " + data[0].date;
+                        document.getElementById('hum-time').innerText = "Updated at: " + data[0].time + " | " + data[0].date;
+                    }
+
+                    data.forEach((row, index) => {
+                        const tr = document.createElement('tr');
+                        tr.className = "hover:bg-gray-50";
+                        tr.innerHTML = `
+                            <td class="p-3 border">${index + 1}</td>
+                            <td class="p-3 border font-bold text-orange-600">${row.temperature} °C</td>
+                            <td class="p-3 border font-bold text-blue-600">${row.humidity} %</td>
+                            <td class="p-3 border">${row.time}</td>
+                            <td class="p-3 border">${row.date}</td>
+                            <td class="p-3 border text-center">
+                                <a href="/delete/${row.id}" class="bg-red-100 text-red-600 px-3 py-1 rounded-full text-xs font-bold hover:bg-red-600 hover:text-white transition">Delete</a>
+                            </td>
+                        `;
+                        tableBody.appendChild(tr);
+                    });
+                });
+        }
+
+        loadRecords();
+        setInterval(loadRecords, 5000); // Refresh every 5 seconds
+    </script>
+</body>
+</html>
